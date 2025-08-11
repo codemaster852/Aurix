@@ -547,6 +547,15 @@
             };
 
             const getAIResponse = async (history, question, file = null, studyTask = null) => {
+                 // FIX: Check database first for text-only, non-study-task questions.
+                if (!file && !studyTask && question) {
+                    const lowerCaseQuestion = question.toLowerCase().trim();
+                    const found = trainingData.find(item => item.question.toLowerCase().trim() === lowerCaseQuestion);
+                    if (found) {
+                        return found.answer;
+                    }
+                }
+
                 addMessageToChatUI('Aurix is thinking...', 'ai');
                 
                 let systemPrompt = "You are Aurix, a helpful and friendly assistant from the SpeedAI Company. If the user asks for code, provide only the code block in markdown format (e.g., ```html ... ```). Otherwise, provide a concise text answer.";
@@ -738,6 +747,7 @@
 
                     const { Markmap, transformer } = window.markmap;
                     const { root } = transformer.transform(markdown);
+                    mindmapSvg.innerHTML = ''; // Clear previous map
                     Markmap.create(mindmapSvg, null, root);
                     mindmapModal.classList.remove('hidden');
 
@@ -872,7 +882,7 @@
                             <p class="mt-2"><strong>You:</strong> ${chat.hasFile ? '(File attached) ' : ''}${chat.userMessage}</p>
                             <p class="mt-1"><strong>Aurix:</strong> ${chat.aiResponse.substring(0, 100)}...</p>
                         `;
-                        chatHistoryContainer.appendChild(div);
+                        trainingDataContainer.appendChild(div);
                     });
                 }, (error) => {
                     console.error("Error loading chat history:", error);
