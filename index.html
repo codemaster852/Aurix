@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aurix - Your Personal AI Assistant</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/markmap-lib/0.15.0/markmap-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/markmap-view/0.15.0/markmap-view.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -36,7 +38,7 @@
         .hidden {
             display: none;
         }
-        #admin-panel, #login-modal, #gemini-modal, #preview-modal {
+        #admin-panel, #login-modal, #gemini-modal, #preview-modal, #mindmap-modal {
             transition: opacity 0.3s ease-in-out;
         }
         #main-title {
@@ -66,6 +68,37 @@
             overflow-x: auto;
             font-family: 'Courier New', Courier, monospace;
         }
+        #file-preview-container {
+            position: relative;
+            max-width: 200px;
+            background-color: #f0f2f5;
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #remove-file-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        #study-mode-controls button {
+            transition: all 0.2s ease-in-out;
+        }
+        #study-mode-controls button:hover {
+            transform: translateY(-2px);
+        }
     </style>
 </head>
 <body class="antialiased text-gray-800">
@@ -73,19 +106,42 @@
     <!-- Main User Chat Interface -->
     <div id="user-chat-interface" class="w-full h-screen flex flex-col items-center justify-center p-4">
         <div class="w-full max-w-2xl h-full flex flex-col bg-white rounded-2xl shadow-2xl">
-            <div class="p-4 border-b border-gray-200">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
                 <h1 id="main-title" class="text-2xl font-bold text-center text-gray-700 select-none">Aurix</h1>
-                <p class="text-sm text-center text-gray-500">Your intelligent chat companion</p>
+                <div>
+                     <button id="mindmap-btn" class="text-gray-500 hover:text-blue-600 p-2" title="Generate Mind Map">
+                        <i class="fas fa-project-diagram text-xl"></i>
+                    </button>
+                    <button id="study-mode-toggle" class="text-gray-500 hover:text-blue-600 p-2" title="Study Mode">
+                        <i class="fas fa-graduation-cap text-xl"></i>
+                    </button>
+                </div>
             </div>
             <div id="chat-box" class="flex-1 p-6 overflow-y-auto flex flex-col gap-4">
                 <!-- Chat messages will be appended here -->
-                <div class="chat-bubble chat-bubble-ai">Hello! I am Aurix from the SpeedAI Company. I can even write code for you. Try asking for "a login form in html".</div>
+                <div class="chat-bubble chat-bubble-ai">Hello! I am Aurix. Activate 'Study Mode' with the cap icon to create tests or summarize files.</div>
             </div>
-            <div class="p-4 border-t border-gray-200 flex items-center gap-4">
-                <input type="text" id="user-input" class="flex-1 w-full px-4 py-2 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Type your message...">
-                <button id="send-btn" class="bg-blue-600 text-white rounded-full p-3 hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
+            <div class="p-4 border-t border-gray-200">
+                <div id="study-mode-controls" class="hidden flex justify-center gap-4 mb-2">
+                    <button id="summarize-btn" class="bg-purple-500 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-purple-600"><i class="fas fa-align-left mr-2"></i>Summarize</button>
+                    <button id="test-btn" class="bg-teal-500 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-teal-600"><i class="fas fa-question-circle mr-2"></i>Create Test</button>
+                </div>
+                <div id="file-preview-container" class="hidden mb-2">
+                    <div id="file-preview-content">
+                        <!-- Preview for image or file icon -->
+                    </div>
+                    <button id="remove-file-btn">&times;</button>
+                </div>
+                <div class="flex items-center gap-4">
+                    <input type="file" id="file-input" class="hidden" accept="image/png, image/jpeg, image/webp, application/pdf, text/html">
+                    <label for="file-input" class="cursor-pointer text-gray-500 hover:text-blue-600 p-2">
+                        <i class="fas fa-paperclip text-xl"></i>
+                    </label>
+                    <input type="text" id="user-input" class="flex-1 w-full px-4 py-2 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Type your message or upload a file...">
+                    <button id="send-btn" class="bg-blue-600 text-white rounded-full p-3 hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -245,6 +301,17 @@
             <iframe id="preview-frame" class="w-full h-full border-0"></iframe>
         </div>
     </div>
+    
+    <!-- Mind Map Modal -->
+    <div id="mindmap-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-2xl w-11/12 h-5/6 flex flex-col">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h2 class="text-xl font-bold">Conversation Mind Map</h2>
+                <button id="close-mindmap-modal" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </div>
+            <svg id="mindmap-svg" class="w-full h-full"></svg>
+        </div>
+    </div>
 
 
     <!-- Firebase SDK -->
@@ -292,6 +359,22 @@
             const sendBtn = document.getElementById('send-btn');
             const userInput = document.getElementById('user-input');
             const chatBox = document.getElementById('chat-box');
+            const fileInput = document.getElementById('file-input');
+            const filePreviewContainer = document.getElementById('file-preview-container');
+            const filePreviewContent = document.getElementById('file-preview-content');
+            const removeFileBtn = document.getElementById('remove-file-btn');
+            
+            // Study Mode Elements
+            const studyModeToggle = document.getElementById('study-mode-toggle');
+            const studyModeControls = document.getElementById('study-mode-controls');
+            const summarizeBtn = document.getElementById('summarize-btn');
+            const testBtn = document.getElementById('test-btn');
+            
+            // Mind Map Elements
+            const mindmapBtn = document.getElementById('mindmap-btn');
+            const mindmapModal = document.getElementById('mindmap-modal');
+            const closeMindmapModal = document.getElementById('close-mindmap-modal');
+            const mindmapSvg = document.getElementById('mindmap-svg');
 
             // Admin Panel elements
             const adminNavLinks = document.querySelectorAll('.admin-nav-link');
@@ -323,6 +406,9 @@
             let currentUserId = null;
             let editingItemId = null; 
             let codeSnippets = {}; // Store raw code for preview/copy
+            let attachedFile = null; // Store attached file data
+            let chatHistory = []; // For conversational memory
+            let isStudyMode = false;
             const GEMINI_API_KEY = "AIzaSyDa46GJ8p6xGXEbW8rb8yXySfNOmGhLxI4";
             const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -408,10 +494,8 @@
                 let lastIndex = 0;
                 let hasCode = false;
 
-                // Use replace to iterate over all matches
                 text.replace(codeBlockRegex, (match, language, code, offset) => {
                     hasCode = true;
-                    // Add any plain text before this code block
                     const precedingText = text.substring(lastIndex, offset);
                     if (precedingText.trim()) {
                         const bubble = document.createElement('div');
@@ -420,7 +504,6 @@
                         chatBox.appendChild(bubble);
                     }
 
-                    // Process and add the code block
                     language = language || 'code';
                     code = code.trim();
                     
@@ -428,11 +511,7 @@
                     codeContainer.className = 'code-block';
                     
                     const codeId = `code-${Date.now()}-${Math.random()}`;
-                    
-                    // Store the raw, unescaped code for preview/copy
                     codeSnippets[codeId] = code;
-
-                    // Escape HTML for safe display in the chat
                     const escapedCode = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
                     codeContainer.innerHTML = `
@@ -451,7 +530,6 @@
                     lastIndex = offset + match.length;
                 });
 
-                // Add any remaining text after the last code block or if no code exists
                 const remainingText = text.substring(lastIndex).trim();
                 if (!hasCode) {
                     const bubble = document.createElement('div');
@@ -468,69 +546,216 @@
                 chatBox.scrollTop = chatBox.scrollHeight;
             };
 
-            const getAIResponse = async (question) => {
-                const lowerCaseQuestion = question.toLowerCase().trim();
-                const found = trainingData.find(item => item.question.toLowerCase().trim() === lowerCaseQuestion);
-
-                if (found) {
-                    return found.answer;
-                } else {
-                    addMessageToChatUI('Aurix is thinking...', 'ai');
-                    const prompt = `You are Aurix, a helpful and friendly assistant from the SpeedAI Company. If the user asks for code, provide only the code block in markdown format (e.g., \`\`\`html ... \`\`\`). Otherwise, provide a concise text answer. User question: "${question}"`;
-                    try {
-                        const response = await fetch(GEMINI_API_URL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                        });
-                        
-                        if (!response.ok) {
-                            const errorBody = await response.json();
-                            throw new Error(`Gemini API Error: ${response.status}. Check console.`);
-                        }
-                        
-                        const data = await response.json();
-                        const geminiAnswer = data.candidates[0].content.parts[0].text;
-
-                        // Do not save code snippets to the general Q&A database
-                        if (!geminiAnswer.includes('```')) {
-                            await addDoc(trainingCollection, { question: question, answer: geminiAnswer });
-                        }
-                        
-                        // Remove the "thinking" message
-                        const thinkingBubble = Array.from(chatBox.children).find(el => el.textContent === 'Aurix is thinking...');
-                        if (thinkingBubble) thinkingBubble.remove();
-
-                        return geminiAnswer;
-
-                    } catch (error) {
-                        return `I'm having a little trouble connecting to my brain right now. The server reported an error: "${error.message}".`;
+            const getAIResponse = async (history, question, file = null, studyTask = null) => {
+                addMessageToChatUI('Aurix is thinking...', 'ai');
+                
+                let systemPrompt = "You are Aurix, a helpful and friendly assistant from the SpeedAI Company. If the user asks for code, provide only the code block in markdown format (e.g., ```html ... ```). Otherwise, provide a concise text answer.";
+                
+                const parts = [];
+                if (file) {
+                    parts.push(file.part);
+                    if (studyTask === 'summarize') {
+                        parts.push({text: "Please summarize the key points from the provided document."});
+                        systemPrompt = "You are Aurix, an expert academic assistant. Summarize the provided text concisely.";
+                    } else if (studyTask === 'test') {
+                        parts.push({text: "Generate a multiple-choice quiz with 3-4 questions based on the provided document. Provide the correct answer for each question."});
+                         systemPrompt = "You are Aurix, an expert quiz creator. Create a multiple-choice quiz from the text.";
+                    } else {
+                        parts.push({text: question || `Describe this ${file.type}`});
                     }
+                } else {
+                     if (studyTask === 'summarize') {
+                        const conversationText = history.map(entry => `${entry.role}: ${entry.parts[0].text}`).join('\n');
+                        parts.push({text: `Please summarize the key points from the following conversation:\n${conversationText}`});
+                        systemPrompt = "You are Aurix, an expert academic assistant. Summarize the provided text concisely.";
+                    } else if (studyTask === 'test') {
+                        const conversationText = history.map(entry => `${entry.role}: ${entry.parts[0].text}`).join('\n');
+                        parts.push({text: `Generate a multiple-choice quiz with 3-4 questions based on the following conversation. Provide the correct answer for each question:\n${conversationText}`});
+                         systemPrompt = "You are Aurix, an expert quiz creator. Create a multiple-choice quiz from the text.";
+                    } else {
+                        parts.push({text: question});
+                    }
+                }
+
+                history.push({ role: "user", parts: parts });
+
+                const payload = {
+                    contents: history,
+                    systemInstruction: { parts: [{ text: systemPrompt }] }
+                };
+
+                try {
+                    const response = await fetch(GEMINI_API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (!response.ok) {
+                        const errorBody = await response.json();
+                        throw new Error(`Gemini API Error: ${response.status}. Check console.`);
+                    }
+                    
+                    const data = await response.json();
+                    const geminiAnswer = data.candidates[0].content.parts[0].text;
+                    
+                    history.push({ role: "model", parts: [{ text: geminiAnswer }] });
+                    
+                    if (!geminiAnswer.includes('```') && !file) {
+                        const lowerCaseQuestion = question.toLowerCase().trim();
+                        const found = trainingData.find(item => item.question.toLowerCase().trim() === lowerCaseQuestion);
+                        if (!found) {
+                             await addDoc(trainingCollection, { question: question, answer: geminiAnswer });
+                        }
+                    }
+                    
+                    const thinkingBubble = Array.from(chatBox.children).find(el => el.textContent.includes('thinking'));
+                    if (thinkingBubble) thinkingBubble.remove();
+
+                    return geminiAnswer;
+
+                } catch (error) {
+                    const thinkingBubble = Array.from(chatBox.children).find(el => el.textContent.includes('thinking'));
+                    if (thinkingBubble) thinkingBubble.remove();
+                    return `I'm having a little trouble connecting to my brain right now. The server reported an error: "${error.message}".`;
                 }
             };
 
-            const handleSendMessage = async () => {
+            const handleSendMessage = async (studyTask = null) => {
                 const message = userInput.value.trim();
-                if (!message || !currentUserId) return;
-
-                addMessageToChatUI(message, 'user');
+                if (!message && !attachedFile && !studyTask) return;
+                if (!currentUserId) {
+                    alert("Cannot send message. User not authenticated.");
+                    return;
+                }
+                
+                if(message) addMessageToChatUI(message, 'user');
                 userInput.value = '';
+                const fileToSend = attachedFile;
+                resetFileInput();
 
-                const aiResponse = await getAIResponse(message);
+                const aiResponse = await getAIResponse(chatHistory, message, fileToSend, studyTask);
                 addMessageToChatUI(aiResponse, 'ai');
 
                 await addDoc(chatsCollection, {
                     userId: currentUserId,
                     userMessage: message,
                     aiResponse: aiResponse,
+                    hasFile: !!fileToSend,
                     timestamp: serverTimestamp()
                 });
             };
 
-            sendBtn.addEventListener('click', handleSendMessage);
+            sendBtn.addEventListener('click', () => handleSendMessage());
             userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSendMessage(); });
 
-            // --- Magic Lab & Training Data Logic (Admin View) ---
+            // --- File Handling Logic ---
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const fileData = event.target.result;
+                    let previewHtml = '';
+
+                    if (file.type.startsWith('image/')) {
+                        attachedFile = { part: { inlineData: { mimeType: file.type, data: fileData.split(',')[1] } }, type: 'image' };
+                        previewHtml = `<img src="${fileData}" class="rounded-lg max-h-24" />`;
+                    } else if (file.type === 'text/html') {
+                        attachedFile = { part: { text: fileData }, type: 'html' };
+                        previewHtml = `<i class="fas fa-file-code text-4xl text-gray-600"></i> <span class="text-sm">${file.name}</span>`;
+                    } else if (file.type === 'application/pdf') {
+                        attachedFile = { part: { text: `User uploaded a PDF file named ${file.name}. Inform the user that you can see the file type but cannot yet read its contents.` }, type: 'pdf' };
+                        previewHtml = `<i class="fas fa-file-pdf text-4xl text-red-600"></i> <span class="text-sm">${file.name}</span>`;
+                    }
+                    
+                    filePreviewContent.innerHTML = previewHtml;
+                    filePreviewContainer.classList.remove('hidden');
+                };
+
+                if (file.type.startsWith('image/')) {
+                    reader.readAsDataURL(file);
+                } else {
+                    reader.readAsText(file);
+                }
+            });
+
+            const resetFileInput = () => {
+                attachedFile = null;
+                fileInput.value = '';
+                filePreviewContainer.classList.add('hidden');
+                filePreviewContent.innerHTML = '';
+            };
+
+            removeFileBtn.addEventListener('click', resetFileInput);
+            
+            // --- Study Mode Logic ---
+            studyModeToggle.addEventListener('click', () => {
+                isStudyMode = !isStudyMode;
+                studyModeControls.classList.toggle('hidden');
+                studyModeToggle.classList.toggle('text-blue-600');
+            });
+            
+            summarizeBtn.addEventListener('click', () => {
+                if (!attachedFile && chatHistory.length === 0) {
+                    alert("Please attach a file or have a conversation to summarize.");
+                    return;
+                }
+                handleSendMessage('summarize');
+            });
+
+            testBtn.addEventListener('click', () => {
+                if (!attachedFile && chatHistory.length === 0) {
+                    alert("Please attach a file or have a conversation to create a test from.");
+                    return;
+                }
+                handleSendMessage('test');
+            });
+            
+            // --- Mind Map Logic ---
+            mindmapBtn.addEventListener('click', async () => {
+                if (chatHistory.length === 0) {
+                    alert("Chat history is empty. Have a conversation first!");
+                    return;
+                }
+                
+                const conversationText = chatHistory.map(entry => `${entry.role}: ${entry.parts[0].text}`).join('\n');
+                
+                addMessageToChatUI("Generating mind map...", 'ai');
+
+                const prompt = `Convert the following conversation into a hierarchical mind map using markdown format. The root node should be "Conversation Summary".\n\n${conversationText}`;
+                
+                try {
+                    const response = await fetch(GEMINI_API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }]})
+                    });
+                    if (!response.ok) throw new Error("API Error");
+                    const data = await response.json();
+                    const markdown = data.candidates[0].content.parts[0].text.replace(/```markdown\n|```/g, '').trim();
+
+                    const { Markmap, transformer } = window.markmap;
+                    const { root } = transformer.transform(markdown);
+                    Markmap.create(mindmapSvg, null, root);
+                    mindmapModal.classList.remove('hidden');
+
+                } catch(e) {
+                    alert("Could not generate mind map.");
+                } finally {
+                     const thinkingBubble = Array.from(chatBox.children).find(el => el.textContent.includes('Generating mind map'));
+                    if (thinkingBubble) thinkingBubble.remove();
+                }
+            });
+            
+            closeMindmapModal.addEventListener('click', () => {
+                mindmapModal.classList.add('hidden');
+                mindmapSvg.innerHTML = '';
+            });
+
+
+            // --- Magic Lab & Admin View ---
             const resetTrainingForm = () => {
                 editingItemId = null;
                 trainQuestion.value = '';
@@ -644,8 +869,8 @@
                         div.className = 'p-4 border rounded-lg hover:bg-gray-50';
                         div.innerHTML = `
                             <p class="text-sm text-gray-500"><strong>User:</strong> ${chat.userId.substring(0, 8)}... on ${date}</p>
-                            <p class="mt-2"><strong>You:</strong> ${chat.userMessage}</p>
-                            <p class="mt-1"><strong>SpeedAI:</strong> ${chat.aiResponse}</p>
+                            <p class="mt-2"><strong>You:</strong> ${chat.hasFile ? '(File attached) ' : ''}${chat.userMessage}</p>
+                            <p class="mt-1"><strong>Aurix:</strong> ${chat.aiResponse.substring(0, 100)}...</p>
                         `;
                         chatHistoryContainer.appendChild(div);
                     });
@@ -706,4 +931,3 @@
     </script>
 </body>
 </html>
-
