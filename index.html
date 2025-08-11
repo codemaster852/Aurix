@@ -109,6 +109,9 @@
             <div class="p-4 border-b border-gray-200 flex justify-between items-center">
                 <h1 id="main-title" class="text-2xl font-bold text-center text-gray-700 select-none">Aurix</h1>
                 <div>
+                     <button id="new-chat-btn" class="text-gray-500 hover:text-blue-600 p-2" title="New Chat">
+                        <i class="fas fa-plus-circle text-xl"></i>
+                    </button>
                      <button id="mindmap-btn" class="text-gray-500 hover:text-blue-600 p-2" title="Generate Mind Map">
                         <i class="fas fa-project-diagram text-xl"></i>
                     </button>
@@ -363,6 +366,7 @@
             const filePreviewContainer = document.getElementById('file-preview-container');
             const filePreviewContent = document.getElementById('file-preview-content');
             const removeFileBtn = document.getElementById('remove-file-btn');
+            const newChatBtn = document.getElementById('new-chat-btn');
             
             // Study Mode Elements
             const studyModeToggle = document.getElementById('study-mode-toggle');
@@ -762,6 +766,17 @@
             closeMindmapModal.addEventListener('click', () => {
                 mindmapModal.classList.add('hidden');
                 mindmapSvg.innerHTML = '';
+            });
+
+            // --- New Chat Logic ---
+            newChatBtn.addEventListener('click', () => {
+                chatHistory = [];
+                chatBox.innerHTML = '';
+                addMessageToChatUI("Hello! I am Aurix. Activate 'Study Mode' with the cap icon to create tests or summarize files.", 'ai');
+                resetFileInput();
+                if (isStudyMode) {
+                    studyModeToggle.click();
+                }
             });
 
 
