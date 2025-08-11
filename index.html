@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aurix - Your Personal AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+        }
+        .admin-gradient {
+            background: linear-gradient(135deg, #2c3e50, #4a69bd);
+        }
+        .chat-bubble {
+            max-width: 75%;
+            padding: 10px 15px;
+            border-radius: 20px;
+            word-wrap: break-word;
+        }
+        .chat-bubble-user {
+            background-color: #007bff;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+        .chat-bubble-ai {
+            background-color: #e9e9eb;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+        .hidden {
+            display: none;
+        }
+        #admin-panel, #login-modal, #gemini-modal, #preview-modal {
+            transition: opacity 0.3s ease-in-out;
+        }
+        #main-title {
+            cursor: pointer;
+        }
+        .code-block {
+            background-color: #1e293b;
+            color: #e2e8f0;
+            border-radius: 12px;
+            margin: 8px 0;
+            max-width: 90%;
+            align-self: flex-start;
+            width: 100%;
+        }
+        .code-header {
+            background-color: #334155;
+            padding: 8px 16px;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+        }
+        .code-body {
+            padding: 16px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
+</head>
+<body class="antialiased text-gray-800">
+
+    <!-- Main User Chat Interface -->
+    <div id="user-chat-interface" class="w-full h-screen flex flex-col items-center justify-center p-4">
+        <div class="w-full max-w-2xl h-full flex flex-col bg-white rounded-2xl shadow-2xl">
+            <div class="p-4 border-b border-gray-200">
+                <h1 id="main-title" class="text-2xl font-bold text-center text-gray-700 select-none">Aurix</h1>
+                <p class="text-sm text-center text-gray-500">Your intelligent chat companion</p>
+            </div>
+            <div id="chat-box" class="flex-1 p-6 overflow-y-auto flex flex-col gap-4">
+                <!-- Chat messages will be appended here -->
+                <div class="chat-bubble chat-bubble-ai">Hello! I am Aurix from the SpeedAI Company. I can even write code for you. Try asking for "a login form in html".</div>
+            </div>
+            <div class="p-4 border-t border-gray-200 flex items-center gap-4">
+                <input type="text" id="user-input" class="flex-1 w-full px-4 py-2 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Type your message...">
+                <button id="send-btn" class="bg-blue-600 text-white rounded-full p-3 hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div id="login-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md text-center">
+            <h2 class="text-3xl font-bold mb-2 text-gray-800">Admin Panel Access</h2>
+            <p class="text-gray-500 mb-6">Enter your credentials to manage Aurix.</p>
+            <div id="login-error" class="bg-red-100 text-red-700 p-3 rounded-lg mb-4 hidden">Invalid credentials. Please try again.</div>
+            <form id="login-form">
+                <div class="mb-4 text-left">
+                    <label for="username" class="block text-sm font-medium text-gray-600 mb-1">Username</label>
+                    <input type="text" id="username" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                </div>
+                <div class="mb-6 text-left">
+                    <label for="password" class="block text-sm font-medium text-gray-600 mb-1">Password</label>
+                    <input type="password" id="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Login
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="admin-panel" class="hidden">
+        <div class="flex h-screen bg-gray-100">
+            <!-- Sidebar -->
+            <div class="w-64 admin-gradient text-white flex flex-col">
+                <div class="p-6 text-center border-b border-white/20">
+                    <h2 class="text-2xl font-bold">Aurix Admin</h2>
+                </div>
+                <nav class="flex-1 p-4 space-y-2">
+                    <a href="#dashboard" class="admin-nav-link active flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors" data-target="dashboard-section"><i class="fas fa-tachometer-alt w-5"></i> Dashboard</a>
+                    <a href="#users" class="admin-nav-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors" data-target="users-section"><i class="fas fa-users w-5"></i> Users</a>
+                    <a href="#chats" class="admin-nav-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors" data-target="chats-section"><i class="fas fa-comments w-5"></i> Chats</a>
+                    <a href="#magic-lab" class="admin-nav-link flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors" data-target="magic-lab-section"><i class="fas fa-flask w-5"></i> Magic Lab</a>
+                </nav>
+                <div class="p-4 border-t border-white/20">
+                    <button id="logout-btn" class="w-full flex items-center justify-center gap-3 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 transition-colors">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <main class="flex-1 p-8 overflow-y-auto">
+                <!-- Dashboard Section -->
+                <div id="dashboard-section" class="admin-section">
+                    <h1 class="text-4xl font-bold text-gray-800 mb-6">Dashboard</h1>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                            <i class="fas fa-brain text-4xl text-blue-500"></i>
+                            <div>
+                                <p class="text-gray-500">Trained Pairs</p>
+                                <p id="trained-count" class="text-2xl font-bold">0</p>
+                            </div>
+                        </div>
+                         <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                            <i class="fas fa-users text-4xl text-green-500"></i>
+                            <div>
+                                <p class="text-gray-500">Total Users</p>
+                                <p id="user-count" class="text-2xl font-bold">0</p>
+                            </div>
+                        </div>
+                         <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                            <i class="fas fa-comments text-4xl text-purple-500"></i>
+                            <div>
+                                <p class="text-gray-500">Total Chats</p>
+                                <p id="chat-count" class="text-2xl font-bold">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Users Section -->
+                <div id="users-section" class="admin-section hidden">
+                    <h1 class="text-4xl font-bold text-gray-800 mb-6">Users</h1>
+                     <div class="bg-white p-6 rounded-xl shadow-md">
+                        <p class="text-gray-600">User management functionality coming soon.</p>
+                    </div>
+                </div>
+
+                <!-- Chats Section -->
+                <div id="chats-section" class="admin-section hidden">
+                    <h1 class="text-4xl font-bold text-gray-800 mb-6">Chat History</h1>
+                    <div id="chat-history-container" class="bg-white p-6 rounded-xl shadow-md space-y-4">
+                        <p class="text-gray-500">No chat history found.</p>
+                    </div>
+                </div>
+
+                <!-- Magic Lab Section -->
+                <div id="magic-lab-section" class="admin-section hidden">
+                    <h1 class="text-4xl font-bold text-gray-800 mb-6">Magic Lab</h1>
+                    <div class="bg-white p-8 rounded-xl shadow-md">
+                        <h3 class="text-2xl font-bold mb-6">Train Your AI Model</h3>
+                        
+                        <!-- Training Form -->
+                        <div class="mb-8">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label for="train-question" class="block text-lg font-medium text-gray-700 mb-2">Question</label>
+                                    <textarea id="train-question" rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                                </div>
+                                <div>
+                                    <label for="train-answer" class="block text-lg font-medium text-gray-700 mb-2">Answer</label>
+                                    <textarea id="train-answer" rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex flex-wrap gap-4">
+                                <button id="save-training-btn" class="bg-green-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-green-700 transition-colors"><i class="fas fa-save mr-2"></i>Save to Firebase</button>
+                                <button id="cancel-edit-btn" class="hidden bg-gray-500 text-white font-bold py-2 px-5 rounded-lg hover:bg-gray-600 transition-colors">Cancel Edit</button>
+                                <button id="gemini-help-btn" class="bg-yellow-500 text-white font-bold py-2 px-5 rounded-lg hover:bg-yellow-600 transition-colors"><i class="fas fa-wand-magic-sparkles mr-2"></i>Help with Gemini</button>
+                            </div>
+                        </div>
+
+                        <div class="border-t pt-8">
+                            <h3 class="text-2xl font-bold mb-4">Training Data</h3>
+                             <div id="training-data-container" class="space-y-4 max-h-96 overflow-y-auto p-4 bg-gray-50 rounded-lg">
+                                <!-- Training data will be loaded here -->
+                             </div>
+                        </div>
+
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- Gemini Help Modal -->
+    <div id="gemini-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-800">Gemini Assistant</h2>
+                <button id="close-gemini-modal" class="text-gray-500 hover:text-gray-800">&times;</button>
+            </div>
+            <div id="gemini-loading" class="text-center p-8 hidden">
+                <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
+                <p class="mt-4 text-gray-600">Gemini is thinking...</p>
+            </div>
+            <div id="gemini-content">
+                <p class="text-gray-600 mb-4">Gemini's suggestions will appear here. It can help summarize or rephrase your training data.</p>
+                <textarea id="gemini-result" rows="8" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50" readonly></textarea>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Code Preview Modal -->
+    <div id="preview-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-2xl w-11/12 h-5/6 flex flex-col">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h2 class="text-xl font-bold">Code Preview</h2>
+                <button id="close-preview-modal" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </div>
+            <iframe id="preview-frame" class="w-full h-full border-0"></iframe>
+        </div>
+    </div>
+
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDetf-322YgrrJzgUemO-lPg1IDsuTy4lI",
+            authDomain: "speedai-1798b.firebaseapp.com",
+            projectId: "speedai-1798b",
+            storageBucket: "speedai-1798b.appspot.com",
+            messagingSenderId: "60237083100",
+            appId: "1:60237083100:web:d1f581a002485cea8b5f19",
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        signInAnonymously(auth).catch((error) => console.error("Anonymous sign-in failed:", error));
+        
+        window.db = db;
+        window.auth = auth;
+        window.firebase = { collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, serverTimestamp, query, orderBy, onAuthStateChanged };
+    </script>
+    
+    <!-- App Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const { db, auth, firebase } = window;
+            const { collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, serverTimestamp, query, orderBy, onAuthStateChanged } = firebase;
+
+            // --- Elements ---
+            const loginModal = document.getElementById('login-modal');
+            const adminPanel = document.getElementById('admin-panel');
+            const userChatInterface = document.getElementById('user-chat-interface');
+            const loginForm = document.getElementById('login-form');
+            const loginError = document.getElementById('login-error');
+            const logoutBtn = document.getElementById('logout-btn');
+            const mainTitle = document.getElementById('main-title');
+            
+            // Chat elements
+            const sendBtn = document.getElementById('send-btn');
+            const userInput = document.getElementById('user-input');
+            const chatBox = document.getElementById('chat-box');
+
+            // Admin Panel elements
+            const adminNavLinks = document.querySelectorAll('.admin-nav-link');
+            const adminSections = document.querySelectorAll('.admin-section');
+            const trainedCountEl = document.getElementById('trained-count');
+            const chatCountEl = document.getElementById('chat-count');
+            const chatHistoryContainer = document.getElementById('chat-history-container');
+
+            // Magic Lab elements
+            const saveTrainingBtn = document.getElementById('save-training-btn');
+            const cancelEditBtn = document.getElementById('cancel-edit-btn');
+            const trainQuestion = document.getElementById('train-question');
+            const trainAnswer = document.getElementById('train-answer');
+            const trainingDataContainer = document.getElementById('training-data-container');
+            
+            // Modal elements
+            const geminiHelpBtn = document.getElementById('gemini-help-btn');
+            const geminiModal = document.getElementById('gemini-modal');
+            const closeGeminiModalBtn = document.getElementById('close-gemini-modal');
+            const geminiLoading = document.getElementById('gemini-loading');
+            const geminiContent = document.getElementById('gemini-content');
+            const geminiResult = document.getElementById('gemini-result');
+            const previewModal = document.getElementById('preview-modal');
+            const closePreviewModalBtn = document.getElementById('close-preview-modal');
+            const previewFrame = document.getElementById('preview-frame');
+
+            // --- State ---
+            let trainingData = [];
+            let currentUserId = null;
+            let editingItemId = null; 
+            let codeSnippets = {}; // Store raw code for preview/copy
+            const GEMINI_API_KEY = "AIzaSyDa46GJ8p6xGXEbW8rb8yXySfNOmGhLxI4";
+            const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+
+            // --- Firebase Collections ---
+            const trainingCollection = collection(db, "training_data");
+            const chatsCollection = collection(db, "chats");
+
+            // --- Global Data Loading ---
+            const loadGlobalTrainingData = () => {
+                const q = query(trainingCollection);
+                onSnapshot(q, (snapshot) => {
+                    trainingData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                }, (error) => {
+                    console.error("Error loading training data:", error);
+                });
+            };
+            loadGlobalTrainingData();
+
+
+            // --- Authentication ---
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    currentUserId = user.uid;
+                }
+            });
+
+            // --- Secret Admin Trigger ---
+            let clickCount = 0;
+            let clickTimer;
+            mainTitle.addEventListener('click', () => {
+                clickCount++;
+                clearTimeout(clickTimer);
+                clickTimer = setTimeout(() => { clickCount = 0; }, 1500);
+                if (clickCount === 5) {
+                    loginModal.classList.remove('hidden');
+                    clickCount = 0;
+                    clearTimeout(clickTimer);
+                }
+            });
+
+            // --- Admin Authentication ---
+            const adminCredentials = { username: "Mostafa", password: "123456789#Osama" };
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (document.getElementById('username').value === adminCredentials.username && document.getElementById('password').value === adminCredentials.password) {
+                    loginModal.classList.add('hidden');
+                    adminPanel.classList.remove('hidden');
+                    userChatInterface.classList.add('hidden');
+                    loginError.classList.add('hidden');
+                    loadAdminData();
+                } else {
+                    loginError.classList.remove('hidden');
+                }
+            });
+
+            logoutBtn.addEventListener('click', () => {
+                adminPanel.classList.add('hidden');
+                userChatInterface.classList.remove('hidden');
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+            });
+
+            // --- Admin Panel Logic ---
+            function loadAdminData() {
+                loadAdminTrainingDataView();
+                loadChatHistory();
+            }
+
+            adminNavLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = link.getAttribute('data-target');
+                    adminSections.forEach(section => section.classList.add('hidden'));
+                    document.getElementById(targetId).classList.remove('hidden');
+                    adminNavLinks.forEach(nav => nav.classList.remove('active', 'bg-white/20'));
+                    link.classList.add('active', 'bg-white/20');
+                });
+            });
+
+            // --- User Chat Logic ---
+            const addMessageToChatUI = (text, sender) => {
+                const codeBlockRegex = /```(\w*)\n([\s\S]+?)```/g;
+                let lastIndex = 0;
+                let hasCode = false;
+
+                // Use replace to iterate over all matches
+                text.replace(codeBlockRegex, (match, language, code, offset) => {
+                    hasCode = true;
+                    // Add any plain text before this code block
+                    const precedingText = text.substring(lastIndex, offset);
+                    if (precedingText.trim()) {
+                        const bubble = document.createElement('div');
+                        bubble.classList.add('chat-bubble', 'chat-bubble-ai');
+                        bubble.textContent = precedingText.trim();
+                        chatBox.appendChild(bubble);
+                    }
+
+                    // Process and add the code block
+                    language = language || 'code';
+                    code = code.trim();
+                    
+                    const codeContainer = document.createElement('div');
+                    codeContainer.className = 'code-block';
+                    
+                    const codeId = `code-${Date.now()}-${Math.random()}`;
+                    
+                    // Store the raw, unescaped code for preview/copy
+                    codeSnippets[codeId] = code;
+
+                    // Escape HTML for safe display in the chat
+                    const escapedCode = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                    codeContainer.innerHTML = `
+                        <div class="code-header">
+                            <span>${language}</span>
+                            <div>
+                                <button class="preview-btn bg-blue-500 hover:bg-blue-600 text-white text-xs py-1 px-2 rounded mr-2" data-code-id="${codeId}">Run Preview</button>
+                                <button class="copy-btn bg-gray-600 hover:bg-gray-700 text-white text-xs py-1 px-2 rounded" data-code-id="${codeId}">Copy Code</button>
+                            </div>
+                        </div>
+                        <div class="code-body">
+                            <pre><code>${escapedCode}</code></pre>
+                        </div>
+                    `;
+                    chatBox.appendChild(codeContainer);
+                    lastIndex = offset + match.length;
+                });
+
+                // Add any remaining text after the last code block or if no code exists
+                const remainingText = text.substring(lastIndex).trim();
+                if (!hasCode) {
+                    const bubble = document.createElement('div');
+                    bubble.classList.add('chat-bubble', sender === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai');
+                    bubble.textContent = text;
+                    chatBox.appendChild(bubble);
+                } else if (remainingText) {
+                    const bubble = document.createElement('div');
+                    bubble.classList.add('chat-bubble', 'chat-bubble-ai');
+                    bubble.textContent = remainingText;
+                    chatBox.appendChild(bubble);
+                }
+
+                chatBox.scrollTop = chatBox.scrollHeight;
+            };
+
+            const getAIResponse = async (question) => {
+                const lowerCaseQuestion = question.toLowerCase().trim();
+                const found = trainingData.find(item => item.question.toLowerCase().trim() === lowerCaseQuestion);
+
+                if (found) {
+                    return found.answer;
+                } else {
+                    addMessageToChatUI('Aurix is thinking...', 'ai');
+                    const prompt = `You are Aurix, a helpful and friendly assistant from the SpeedAI Company. If the user asks for code, provide only the code block in markdown format (e.g., \`\`\`html ... \`\`\`). Otherwise, provide a concise text answer. User question: "${question}"`;
+                    try {
+                        const response = await fetch(GEMINI_API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                        });
+                        
+                        if (!response.ok) {
+                            const errorBody = await response.json();
+                            throw new Error(`Gemini API Error: ${response.status}. Check console.`);
+                        }
+                        
+                        const data = await response.json();
+                        const geminiAnswer = data.candidates[0].content.parts[0].text;
+
+                        // Do not save code snippets to the general Q&A database
+                        if (!geminiAnswer.includes('```')) {
+                            await addDoc(trainingCollection, { question: question, answer: geminiAnswer });
+                        }
+                        
+                        // Remove the "thinking" message
+                        const thinkingBubble = Array.from(chatBox.children).find(el => el.textContent === 'Aurix is thinking...');
+                        if (thinkingBubble) thinkingBubble.remove();
+
+                        return geminiAnswer;
+
+                    } catch (error) {
+                        return `I'm having a little trouble connecting to my brain right now. The server reported an error: "${error.message}".`;
+                    }
+                }
+            };
+
+            const handleSendMessage = async () => {
+                const message = userInput.value.trim();
+                if (!message || !currentUserId) return;
+
+                addMessageToChatUI(message, 'user');
+                userInput.value = '';
+
+                const aiResponse = await getAIResponse(message);
+                addMessageToChatUI(aiResponse, 'ai');
+
+                await addDoc(chatsCollection, {
+                    userId: currentUserId,
+                    userMessage: message,
+                    aiResponse: aiResponse,
+                    timestamp: serverTimestamp()
+                });
+            };
+
+            sendBtn.addEventListener('click', handleSendMessage);
+            userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSendMessage(); });
+
+            // --- Magic Lab & Training Data Logic (Admin View) ---
+            const resetTrainingForm = () => {
+                editingItemId = null;
+                trainQuestion.value = '';
+                trainAnswer.value = '';
+                saveTrainingBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Save to Firebase';
+                cancelEditBtn.classList.add('hidden');
+            };
+
+            const loadAdminTrainingDataView = () => {
+                const q = query(trainingCollection, orderBy("question"));
+                onSnapshot(q, (snapshot) => {
+                    const adminTrainingData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    trainedCountEl.textContent = adminTrainingData.length;
+                    
+                    trainingDataContainer.innerHTML = '';
+                    if (adminTrainingData.length === 0) {
+                        trainingDataContainer.innerHTML = '<p class="text-gray-500">No training data found.</p>';
+                        return;
+                    }
+                    adminTrainingData.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'bg-white p-4 rounded-lg shadow flex justify-between items-center gap-4';
+                        div.innerHTML = `
+                            <div class="flex-1">
+                                <p class="font-bold text-gray-700">${item.question}</p>
+                                <p class="text-gray-600 mt-1">${item.answer}</p>
+                            </div>
+                            <div class="flex">
+                                <button data-id="${item.id}" class="edit-btn text-blue-500 hover:text-blue-700 transition-colors p-2"><i class="fas fa-pencil-alt"></i></button>
+                                <button data-id="${item.id}" class="delete-btn text-red-500 hover:text-red-700 transition-colors p-2"><i class="fas fa-trash"></i></button>
+                            </div>
+                        `;
+                        trainingDataContainer.appendChild(div);
+                    });
+                });
+            };
+            
+            saveTrainingBtn.addEventListener('click', async () => {
+                const question = trainQuestion.value.trim();
+                const answer = trainAnswer.value.trim();
+
+                if (!question || !answer) {
+                    alert('Please provide both a question and an answer.');
+                    return;
+                }
+
+                try {
+                    if (editingItemId) {
+                        const docRef = doc(db, "training_data", editingItemId);
+                        await updateDoc(docRef, { question, answer });
+                        alert('Entry updated successfully!');
+                    } else {
+                        await addDoc(trainingCollection, { question, answer });
+                        alert('Training pair saved successfully!');
+                    }
+                    resetTrainingForm();
+                } catch (error) {
+                    console.error("Error saving document: ", error);
+                    alert('Failed to save data.');
+                }
+            });
+
+            cancelEditBtn.addEventListener('click', resetTrainingForm);
+
+            trainingDataContainer.addEventListener('click', async (e) => {
+                const editBtn = e.target.closest('.edit-btn');
+                const deleteBtn = e.target.closest('.delete-btn');
+
+                if (editBtn) {
+                    const id = editBtn.getAttribute('data-id');
+                    const itemToEdit = trainingData.find(item => item.id === id);
+                    if (itemToEdit) {
+                        editingItemId = id;
+                        trainQuestion.value = itemToEdit.question;
+                        trainAnswer.value = itemToEdit.answer;
+                        saveTrainingBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Update Entry';
+                        cancelEditBtn.classList.remove('hidden');
+                        window.scrollTo(0, 0);
+                    }
+                }
+
+                if (deleteBtn) {
+                    const id = deleteBtn.getAttribute('data-id');
+                    if (confirm('Are you sure you want to delete this training pair?')) {
+                        try {
+                            await deleteDoc(doc(db, "training_data", id));
+                            alert('Deleted successfully.');
+                            resetTrainingForm();
+                        } catch (error) { 
+                            console.error("Error deleting document: ", error);
+                            alert('Failed to delete.');
+                        }
+                    }
+                }
+            });
+
+            // --- Chat History Logic ---
+            const loadChatHistory = () => {
+                const q = query(chatsCollection, orderBy("timestamp", "desc"));
+                onSnapshot(q, (snapshot) => {
+                    chatCountEl.textContent = snapshot.size;
+                    chatHistoryContainer.innerHTML = '';
+                    if (snapshot.empty) {
+                        chatHistoryContainer.innerHTML = '<p class="text-gray-500">No chat history found.</p>';
+                        return;
+                    }
+                    snapshot.docs.forEach(doc => {
+                        const chat = doc.data();
+                        const date = chat.timestamp?.toDate().toLocaleString() || 'No date';
+                        const div = document.createElement('div');
+                        div.className = 'p-4 border rounded-lg hover:bg-gray-50';
+                        div.innerHTML = `
+                            <p class="text-sm text-gray-500"><strong>User:</strong> ${chat.userId.substring(0, 8)}... on ${date}</p>
+                            <p class="mt-2"><strong>You:</strong> ${chat.userMessage}</p>
+                            <p class="mt-1"><strong>SpeedAI:</strong> ${chat.aiResponse}</p>
+                        `;
+                        chatHistoryContainer.appendChild(div);
+                    });
+                }, (error) => {
+                    console.error("Error loading chat history:", error);
+                    chatHistoryContainer.innerHTML = `<p class="text-red-500">Error loading chat history: ${error.message}. Check your Firestore security rules.</p>`;
+                });
+            };
+            
+            // --- Code Block Interaction & Modals ---
+            chatBox.addEventListener('click', (e) => {
+                const copyBtn = e.target.closest('.copy-btn');
+                const previewBtn = e.target.closest('.preview-btn');
+
+                if (copyBtn) {
+                    const codeId = copyBtn.dataset.codeId;
+                    const textToCopy = codeSnippets[codeId];
+                    
+                    if (textToCopy) {
+                        const textArea = document.createElement('textarea');
+                        textArea.value = textToCopy;
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                        
+                        copyBtn.textContent = 'Copied!';
+                        setTimeout(() => { copyBtn.textContent = 'Copy Code'; }, 2000);
+                    }
+                }
+
+                if (previewBtn) {
+                    const codeId = previewBtn.dataset.codeId;
+                    const codeToPreview = codeSnippets[codeId];
+                    
+                    if (codeToPreview) {
+                        previewFrame.srcdoc = codeToPreview;
+                        previewModal.classList.remove('hidden');
+                    }
+                }
+            });
+
+            closePreviewModalBtn.addEventListener('click', () => {
+                previewModal.classList.add('hidden');
+                previewFrame.srcdoc = ''; // Clear the frame
+            });
+
+            // --- Gemini Help Modal Logic ---
+            geminiHelpBtn.addEventListener('click', async () => {
+                // ... (code unchanged)
+            });
+
+            closeGeminiModalBtn.addEventListener('click', () => {
+                geminiModal.classList.add('hidden');
+            });
+
+        });
+    </script>
+</body>
+</html>
+
