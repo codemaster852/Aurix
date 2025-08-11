@@ -10,10 +10,47 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
+        :root {
+            --bg-main: #f0f2f5;
+            --bg-chat-window: #ffffff;
+            --text-primary: #333;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --bubble-user-bg: #007bff;
+            --bubble-user-text: #ffffff;
+            --bubble-ai-bg: #e9e9eb;
+            --bubble-ai-text: #333;
+            --input-bg: #f3f4f6;
+        }
+
+        body.dark-mode {
+            --bg-main: #111827;
+            --bg-chat-window: #1f2937;
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --border-color: #374151;
+            --bubble-user-bg: #3b82f6;
+            --bubble-user-text: #ffffff;
+            --bubble-ai-bg: #4b5563;
+            --bubble-ai-text: #f9fafb;
+            --input-bg: #374151;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f0f2f5;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
         }
+        .chat-window {
+            background-color: var(--bg-chat-window);
+        }
+        .chat-border {
+            border-color: var(--border-color);
+        }
+        .text-primary { color: var(--text-primary); }
+        .text-secondary { color: var(--text-secondary); }
+        .input-bg { background-color: var(--input-bg); }
+
         .admin-gradient {
             background: linear-gradient(135deg, #2c3e50, #4a69bd);
         }
@@ -24,21 +61,21 @@
             word-wrap: break-word;
         }
         .chat-bubble-user {
-            background-color: #007bff;
-            color: white;
+            background-color: var(--bubble-user-bg);
+            color: var(--bubble-user-text);
             align-self: flex-end;
             border-bottom-right-radius: 5px;
         }
         .chat-bubble-ai {
-            background-color: #e9e9eb;
-            color: #333;
+            background-color: var(--bubble-ai-bg);
+            color: var(--bubble-ai-text);
             align-self: flex-start;
             border-bottom-left-radius: 5px;
         }
         .hidden {
             display: none;
         }
-        #admin-panel, #login-modal, #gemini-modal, #preview-modal, #mindmap-modal {
+        #admin-panel, #login-modal, #gemini-modal, #preview-modal, #mindmap-modal, #settings-modal {
             transition: opacity 0.3s ease-in-out;
         }
         #main-title {
@@ -99,32 +136,74 @@
         #study-mode-controls button:hover {
             transform: translateY(-2px);
         }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 28px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
     </style>
 </head>
-<body class="antialiased text-gray-800">
+<body class="antialiased">
 
     <!-- Main User Chat Interface -->
     <div id="user-chat-interface" class="w-full h-screen flex flex-col items-center justify-center p-4">
-        <div class="w-full max-w-2xl h-full flex flex-col bg-white rounded-2xl shadow-2xl">
-            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
-                <h1 id="main-title" class="text-2xl font-bold text-center text-gray-700 select-none">Aurix</h1>
+        <div class="w-full max-w-2xl h-full flex flex-col chat-window rounded-2xl shadow-2xl">
+            <div class="p-4 border-b chat-border flex justify-between items-center">
+                <h1 id="main-title" class="text-2xl font-bold text-center text-primary select-none">Aurix</h1>
                 <div>
-                     <button id="new-chat-btn" class="text-gray-500 hover:text-blue-600 p-2" title="New Chat">
+                     <button id="new-chat-btn" class="text-secondary hover:text-blue-600 p-2" title="New Chat">
                         <i class="fas fa-plus-circle text-xl"></i>
                     </button>
-                     <button id="mindmap-btn" class="text-gray-500 hover:text-blue-600 p-2" title="Generate Mind Map">
+                     <button id="mindmap-btn" class="text-secondary hover:text-blue-600 p-2" title="Generate Mind Map">
                         <i class="fas fa-project-diagram text-xl"></i>
                     </button>
-                    <button id="study-mode-toggle" class="text-gray-500 hover:text-blue-600 p-2" title="Study Mode">
+                    <button id="study-mode-toggle" class="text-secondary hover:text-blue-600 p-2" title="Study Mode">
                         <i class="fas fa-graduation-cap text-xl"></i>
+                    </button>
+                     <button id="settings-btn" class="text-secondary hover:text-blue-600 p-2" title="Settings">
+                        <i class="fas fa-cog text-xl"></i>
                     </button>
                 </div>
             </div>
             <div id="chat-box" class="flex-1 p-6 overflow-y-auto flex flex-col gap-4">
                 <!-- Chat messages will be appended here -->
-                <div class="chat-bubble chat-bubble-ai">Hello! I am Aurix. Activate 'Study Mode' with the cap icon to create tests or summarize files.</div>
+                <div class="chat-bubble chat-bubble-ai">Hello! I am Aurix. You can now use the microphone to talk to me. Just say "send" when you're done.</div>
             </div>
-            <div class="p-4 border-t border-gray-200">
+            <div class="p-4 border-t chat-border">
                 <div id="study-mode-controls" class="hidden flex justify-center gap-4 mb-2">
                     <button id="summarize-btn" class="bg-purple-500 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-purple-600"><i class="fas fa-align-left mr-2"></i>Summarize</button>
                     <button id="test-btn" class="bg-teal-500 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-teal-600"><i class="fas fa-question-circle mr-2"></i>Create Test</button>
@@ -136,11 +215,14 @@
                     <button id="remove-file-btn">&times;</button>
                 </div>
                 <div class="flex items-center gap-4">
+                    <button id="mic-btn" class="cursor-pointer text-secondary hover:text-blue-600 p-2">
+                        <i class="fas fa-microphone text-xl"></i>
+                    </button>
                     <input type="file" id="file-input" class="hidden" accept="image/png, image/jpeg, image/webp, application/pdf, text/html">
-                    <label for="file-input" class="cursor-pointer text-gray-500 hover:text-blue-600 p-2">
+                    <label for="file-input" class="cursor-pointer text-secondary hover:text-blue-600 p-2">
                         <i class="fas fa-paperclip text-xl"></i>
                     </label>
-                    <input type="text" id="user-input" class="flex-1 w-full px-4 py-2 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Type your message or upload a file...">
+                    <input type="text" id="user-input" class="flex-1 w-full px-4 py-2 input-bg rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Type or speak your message...">
                     <button id="send-btn" class="bg-blue-600 text-white rounded-full p-3 hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <i class="fas fa-paper-plane"></i>
                     </button>
@@ -316,6 +398,52 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-md flex flex-col p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Settings</h2>
+                <button id="close-settings-modal" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </div>
+            <div class="space-y-6">
+                 <div class="flex items-center justify-between">
+                    <label for="dark-mode-toggle" class="text-gray-700">Dark Mode</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="dark-mode-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="flex items-center justify-between">
+                    <label for="always-listen-toggle" class="text-gray-700">Always Listen Mode</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="always-listen-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="flex items-center justify-between">
+                    <label for="user-color-picker" class="text-gray-700">Your Bubble Color</label>
+                    <input type="color" id="user-color-picker" value="#007bff">
+                </div>
+                 <div class="flex items-center justify-between">
+                    <label for="ai-color-picker" class="text-gray-700">Aurix's Bubble Color</label>
+                    <input type="color" id="ai-color-picker" value="#e9e9eb">
+                </div>
+                 <div class="flex items-center justify-between">
+                    <label for="bg-color-picker" class="text-gray-700">Chat Background</label>
+                    <input type="color" id="bg-color-picker" value="#ffffff">
+                </div>
+                 <div class="flex items-center justify-between">
+                    <label for="font-size-slider" class="text-gray-700">Font Size</label>
+                    <input type="range" id="font-size-slider" min="12" max="20" value="16" class="w-1/2">
+                </div>
+            </div>
+            <div class="mt-8 flex justify-between">
+                 <button id="reset-settings-btn" class="bg-gray-500 text-white font-bold py-2 px-5 rounded-lg hover:bg-gray-600 transition-colors">Reset</button>
+                 <button id="save-settings-btn" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">Save</button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Firebase SDK -->
     <script type="module">
@@ -367,6 +495,7 @@
             const filePreviewContent = document.getElementById('file-preview-content');
             const removeFileBtn = document.getElementById('remove-file-btn');
             const newChatBtn = document.getElementById('new-chat-btn');
+            const micBtn = document.getElementById('mic-btn');
             
             // Study Mode Elements
             const studyModeToggle = document.getElementById('study-mode-toggle');
@@ -404,6 +533,18 @@
             const previewModal = document.getElementById('preview-modal');
             const closePreviewModalBtn = document.getElementById('close-preview-modal');
             const previewFrame = document.getElementById('preview-frame');
+            const settingsModal = document.getElementById('settings-modal');
+            const settingsBtn = document.getElementById('settings-btn');
+            const closeSettingsModal = document.getElementById('close-settings-modal');
+            const saveSettingsBtn = document.getElementById('save-settings-btn');
+            const resetSettingsBtn = document.getElementById('reset-settings-btn');
+            const alwaysListenToggle = document.getElementById('always-listen-toggle');
+            const userColorPicker = document.getElementById('user-color-picker');
+            const aiColorPicker = document.getElementById('ai-color-picker');
+            const bgColorPicker = document.getElementById('bg-color-picker');
+            const fontSizeSlider = document.getElementById('font-size-slider');
+            const darkModeToggle = document.getElementById('dark-mode-toggle');
+
 
             // --- State ---
             let trainingData = [];
@@ -413,9 +554,11 @@
             let attachedFile = null; // Store attached file data
             let chatHistory = []; // For conversational memory
             let isStudyMode = false;
+            let isRecording = false;
+            let alwaysListen = false;
             const GEMINI_API_KEY = "AIzaSyDa46GJ8p6xGXEbW8rb8yXySfNOmGhLxI4";
             const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
-
+            
             // --- Firebase Collections ---
             const trainingCollection = collection(db, "training_data");
             const chatsCollection = collection(db, "chats");
@@ -493,65 +636,68 @@
             });
 
             // --- User Chat Logic ---
-            const addMessageToChatUI = (text, sender) => {
-                const codeBlockRegex = /```(\w*)\n([\s\S]+?)```/g;
-                let lastIndex = 0;
-                let hasCode = false;
+            const addMessageToChatUI = (content, sender) => {
+                if (typeof content === 'string') {
+                    const codeBlockRegex = /```(\w*)\n([\s\S]+?)```/g;
+                    let lastIndex = 0;
+                    let hasCode = false;
 
-                text.replace(codeBlockRegex, (match, language, code, offset) => {
-                    hasCode = true;
-                    const precedingText = text.substring(lastIndex, offset);
-                    if (precedingText.trim()) {
+                    content.replace(codeBlockRegex, (match, language, code, offset) => {
+                        hasCode = true;
+                        const precedingText = content.substring(lastIndex, offset);
+                        if (precedingText.trim()) {
+                            const bubble = document.createElement('div');
+                            bubble.classList.add('chat-bubble', 'chat-bubble-ai');
+                            bubble.textContent = precedingText.trim();
+                            chatBox.appendChild(bubble);
+                        }
+
+                        language = language || 'code';
+                        code = code.trim();
+                        
+                        const codeContainer = document.createElement('div');
+                        codeContainer.className = 'code-block';
+                        
+                        const codeId = `code-${Date.now()}-${Math.random()}`;
+                        codeSnippets[codeId] = code;
+                        const escapedCode = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                        codeContainer.innerHTML = `
+                            <div class="code-header">
+                                <span>${language}</span>
+                                <div>
+                                    <button class="preview-btn bg-blue-500 hover:bg-blue-600 text-white text-xs py-1 px-2 rounded mr-2" data-code-id="${codeId}">Run Preview</button>
+                                    <button class="copy-btn bg-gray-600 hover:bg-gray-700 text-white text-xs py-1 px-2 rounded" data-code-id="${codeId}">Copy Code</button>
+                                </div>
+                            </div>
+                            <div class="code-body">
+                                <pre><code>${escapedCode}</code></pre>
+                            </div>
+                        `;
+                        chatBox.appendChild(codeContainer);
+                        lastIndex = offset + match.length;
+                    });
+
+                    const remainingText = content.substring(lastIndex).trim();
+                    if (!hasCode) {
+                        const bubble = document.createElement('div');
+                        bubble.classList.add('chat-bubble', sender === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai');
+                        bubble.textContent = content;
+                        chatBox.appendChild(bubble);
+                    } else if (remainingText) {
                         const bubble = document.createElement('div');
                         bubble.classList.add('chat-bubble', 'chat-bubble-ai');
-                        bubble.textContent = precedingText.trim();
+                        bubble.textContent = remainingText;
                         chatBox.appendChild(bubble);
                     }
-
-                    language = language || 'code';
-                    code = code.trim();
-                    
-                    const codeContainer = document.createElement('div');
-                    codeContainer.className = 'code-block';
-                    
-                    const codeId = `code-${Date.now()}-${Math.random()}`;
-                    codeSnippets[codeId] = code;
-                    const escapedCode = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-                    codeContainer.innerHTML = `
-                        <div class="code-header">
-                            <span>${language}</span>
-                            <div>
-                                <button class="preview-btn bg-blue-500 hover:bg-blue-600 text-white text-xs py-1 px-2 rounded mr-2" data-code-id="${codeId}">Run Preview</button>
-                                <button class="copy-btn bg-gray-600 hover:bg-gray-700 text-white text-xs py-1 px-2 rounded" data-code-id="${codeId}">Copy Code</button>
-                            </div>
-                        </div>
-                        <div class="code-body">
-                            <pre><code>${escapedCode}</code></pre>
-                        </div>
-                    `;
-                    chatBox.appendChild(codeContainer);
-                    lastIndex = offset + match.length;
-                });
-
-                const remainingText = text.substring(lastIndex).trim();
-                if (!hasCode) {
-                    const bubble = document.createElement('div');
-                    bubble.classList.add('chat-bubble', sender === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai');
-                    bubble.textContent = text;
-                    chatBox.appendChild(bubble);
-                } else if (remainingText) {
-                    const bubble = document.createElement('div');
-                    bubble.classList.add('chat-bubble', 'chat-bubble-ai');
-                    bubble.textContent = remainingText;
-                    chatBox.appendChild(bubble);
+                } else if (content instanceof HTMLElement) {
+                    chatBox.appendChild(content);
                 }
 
                 chatBox.scrollTop = chatBox.scrollHeight;
             };
 
             const getAIResponse = async (history, question, file = null, studyTask = null) => {
-                 // FIX: Check database first for text-only, non-study-task questions.
                 if (!file && !studyTask && question) {
                     const lowerCaseQuestion = question.toLowerCase().trim();
                     const found = trainingData.find(item => item.question.toLowerCase().trim() === lowerCaseQuestion);
@@ -778,6 +924,130 @@
                     studyModeToggle.click();
                 }
             });
+
+            // --- Speech to Text Logic ---
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            let recognition;
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+
+                micBtn.addEventListener('click', () => {
+                    if (!isRecording) {
+                        recognition.start();
+                    } else {
+                        recognition.stop();
+                    }
+                });
+
+                recognition.onstart = () => {
+                    isRecording = true;
+                    micBtn.querySelector('i').classList.add('text-red-500');
+                };
+
+                recognition.onend = () => {
+                    isRecording = false;
+                    micBtn.querySelector('i').classList.remove('text-red-500');
+                    if(alwaysListen) {
+                        setTimeout(() => recognition.start(), 250);
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    console.error("Speech recognition error:", event.error);
+                    isRecording = false;
+                    micBtn.querySelector('i').classList.remove('text-red-500');
+                };
+
+                recognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
+                        }
+                    }
+                    
+                    userInput.value = finalTranscript + interimTranscript;
+                    
+                    if (finalTranscript.toLowerCase().includes('send')) {
+                        userInput.value = finalTranscript.toLowerCase().replace('send', '').trim();
+                        if(isRecording) recognition.stop();
+                        sendBtn.click();
+                    }
+                };
+
+            } else {
+                micBtn.classList.add('hidden');
+                console.log("Speech recognition not supported in this browser.");
+            }
+
+            // --- Settings Logic ---
+            const applySettings = () => {
+                const userColor = localStorage.getItem('aurixUserColor') || '#007bff';
+                const aiColor = localStorage.getItem('aurixAiColor') || '#e9e9eb';
+                const bgColor = localStorage.getItem('aurixBgColor') || '#ffffff';
+                const fontSize = localStorage.getItem('aurixFontSize') || '16';
+                const savedAlwaysListen = localStorage.getItem('aurixAlwaysListen') === 'true';
+                const isDarkMode = localStorage.getItem('aurixDarkMode') === 'true';
+
+                userColorPicker.value = userColor;
+                aiColorPicker.value = aiColor;
+                bgColorPicker.value = bgColor;
+                fontSizeSlider.value = fontSize;
+                alwaysListenToggle.checked = savedAlwaysListen;
+                alwaysListen = savedAlwaysListen;
+                darkModeToggle.checked = isDarkMode;
+
+                document.body.classList.toggle('dark-mode', isDarkMode);
+
+                const styleId = 'dynamic-theme-style';
+                let styleElement = document.getElementById(styleId);
+                if (!styleElement) {
+                    styleElement = document.createElement('style');
+                    styleElement.id = styleId;
+                    document.head.appendChild(styleElement);
+                }
+                styleElement.innerHTML = `
+                    :root {
+                        --bubble-user-bg: ${userColor};
+                        --bubble-ai-bg: ${aiColor};
+                    }
+                    body:not(.dark-mode) {
+                         --bg-chat-window: ${bgColor};
+                    }
+                    #chat-box { font-size: ${fontSize}px !important; }
+                `;
+            };
+
+            settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
+            closeSettingsModal.addEventListener('click', () => settingsModal.classList.add('hidden'));
+            
+            saveSettingsBtn.addEventListener('click', () => {
+                localStorage.setItem('aurixUserColor', userColorPicker.value);
+                localStorage.setItem('aurixAiColor', aiColorPicker.value);
+                localStorage.setItem('aurixBgColor', bgColorPicker.value);
+                localStorage.setItem('aurixFontSize', fontSizeSlider.value);
+                localStorage.setItem('aurixAlwaysListen', alwaysListenToggle.checked);
+                localStorage.setItem('aurixDarkMode', darkModeToggle.checked);
+                applySettings();
+                settingsModal.classList.add('hidden');
+            });
+
+            resetSettingsBtn.addEventListener('click', () => {
+                localStorage.removeItem('aurixUserColor');
+                localStorage.removeItem('aurixAiColor');
+                localStorage.removeItem('aurixBgColor');
+                localStorage.removeItem('aurixFontSize');
+                localStorage.removeItem('aurixAlwaysListen');
+                localStorage.removeItem('aurixDarkMode');
+                applySettings();
+            });
+
+            applySettings();
 
 
             // --- Magic Lab & Admin View ---
