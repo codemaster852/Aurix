@@ -768,6 +768,12 @@
                     const geminiAnswer = data.candidates[0].content.parts[0].text;
                     chatHistory.push({ role: "user", parts: parts });
                     chatHistory.push({ role: "model", parts: [{ text: geminiAnswer }] });
+
+                    // FIX: Save new answers to the database
+                    if (!file && !studyTask && question && !geminiAnswer.includes('```')) {
+                        await addDoc(trainingCollection, { question: question, answer: geminiAnswer });
+                    }
+
                     return geminiAnswer;
 
                 } catch (geminiError) {
