@@ -687,41 +687,37 @@
                 chatBox.scrollTop = chatBox.scrollHeight;
             };
 
-            const callApiWithRetry = async (url, payload, headers, retries = 3, delay = 1000) => {
-                for (let i = 0; i < retries; i++) {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: headers,
-                        body: JSON.stringify(payload)
-                    });
-                    if (response.ok) {
-                        return response.json();
-                    }
-                    if (response.status === 503 || response.status === 429) {
-                        console.warn(`API unavailable, retrying in ${delay / 1000}s...`);
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                        delay *= 2; // Exponential backoff
-                    } else {
-                        const errorBody = await response.json();
-                        console.error("API Error Response:", errorBody);
-                        throw new Error(`API Error: ${response.status}.`);
-                    }
-                }
-                throw new Error("API is overloaded. Please try again later.");
-            };
-
             const getAIResponse = async (history, question, file = null, studyTask = null) => {
-                if (!file && !studyTask && question) {
-                    const lowerCaseQuestion = question.toLowerCase().trim();
-                    const found = trainingData.find(item => item.question.toLowerCase().trim() === lowerCaseQuestion);
-                    if (found) {
-                        return found.answer;
+                const lowerCaseQuestion = question.toLowerCase().trim();
+                const found = trainingData.find(item => item.question.toLowerCase().trim() === lowerCaseQuestion);
+                if (found) {
+                    return found.answer;
+                }
+
+                if (!file && !studyTask) {
+                     addMessageToChatUI('Aurix is searching the web...', 'ai');
+                    try {
+                        const response = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(question)}&format=json`);
+                        const data = await response.json();
+                        let webAnswer = "I couldn't find a direct answer on the web. My administrator has been notified.";
+                        if(data.AbstractText) {
+                            webAnswer = data.AbstractText;
+                        }
+                        await addDoc(trainingCollection, { question: question, answer: webAnswer });
+                        return webAnswer;
+                    } catch (error) {
+                        console.error("Web search failed:", error);
+                        await addDoc(unansweredCollection, { question: question, timestamp: serverTimestamp() });
+                        return "I'm having trouble searching the web right now. My administrator has been notified.";
+                    } finally {
+                        const thinkingBubble = Array.from(chatBox.children).find(el => el.textContent.includes('searching'));
+                        if (thinkingBubble) thinkingBubble.remove();
                     }
                 }
 
                 addMessageToChatUI('Aurix is thinking...', 'ai');
                 
-                let systemPrompt = `You are Aurix, a helpful and friendly assistant from the SpeedAI Company. Respond in ${modelLanguage}. If the user asks for code, provide only the code block in markdown format (e.g., \`\`\`html ... \`\`\`). Otherwise, provide a concise text answer.`;
+                let systemPrompt = `You are Aurix, a helpful and friendly assistant from the SpeedAI Company. Respond in ${modelLanguage}.`;
                 
                 const parts = [];
                 if (file) {
@@ -760,10 +756,6 @@
                     const geminiAnswer = data.candidates[0].content.parts[0].text;
                     chatHistory.push({ role: "user", parts: parts });
                     chatHistory.push({ role: "model", parts: [{ text: geminiAnswer }] });
-
-                    if (!file && !studyTask && question && !geminiAnswer.includes('```')) {
-                        await addDoc(trainingCollection, { question: question, answer: geminiAnswer });
-                    }
 
                     return geminiAnswer;
 
@@ -1213,21 +1205,6 @@
                 previewModal.classList.add('hidden');
                 previewFrame.srcdoc = ''; // Clear the frame
             });
-
-            // --- Gemini Help Modal Logic ---
-            const geminiHelpBtn = document.getElementById('gemini-help-btn');
-            if (geminiHelpBtn) {
-                geminiHelpBtn.addEventListener('click', async () => {
-                    // ... (code unchanged)
-                });
-            }
-
-            const closeGeminiModalBtn = document.getElementById('close-gemini-modal');
-            if (closeGeminiModalBtn) {
-                closeGeminiModalBtn.addEventListener('click', () => {
-                    geminiModal.classList.add('hidden');
-                });
-            }
 
         });
     </script>
